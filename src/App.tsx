@@ -47,6 +47,13 @@ interface GraphQLResponse<T> {
   errors?: Array<{ message: string }>
 }
 
+interface APIErrorResponse {
+  error?: {
+    message: string
+    status: number
+  }
+}
+
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -61,56 +68,124 @@ const App: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // GraphQL 请求函数
+  // GraphQL 请求函数（改进版）
   const makeGraphQLRequest = async (query: string, variables: any) => {
-    const response = await fetch(`${workerEndpoint}/graphql`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        variables
+    try {
+      const response = await fetch(`${workerEndpoint}/graphql`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables
+        })
       })
-    })
 
-    if (!response.ok) {
-      throw new Error(`GraphQL HTTP error! status: ${response.status}`)
+      if (!response.ok) {
+        let errorMessage = `GraphQL HTTP error! status: ${response.status}`
+        try {
+          const errorData: APIErrorResponse = await response.json()
+          if (errorData.error?.message) {
+            errorMessage = errorData.error.message
+          }
+        } catch (parseError) {
+          // 如果无法解析错误响应，使用默认错误信息
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        }
+        throw new Error(errorMessage)
+      }
+
+      const result: GraphQLResponse<any> = await response.json()
+      
+      if (result.errors && result.errors.length > 0) {
+        throw new Error(`GraphQL error: ${result.errors.map(e => e.message).join(', ')}`)
+      }
+
+      return result.data
+    } catch (error) {
+      console.error('GraphQL request failed:', error)
+      throw error
     }
-
-    const result: GraphQLResponse<any> = await response.json()
-    
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(`GraphQL error: ${result.errors.map(e => e.message).join(', ')}`)
-    }
-
-    return result.data
   }
 
-  // REST API 请求函数
+  // REST API 请求函数（改进版）
   const makeRESTRequest = async (allMessages: Message[]) => {
-    const response = await fetch(workerEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: allMessages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        })),
-        temperature: 0.7,
-        max_tokens: 1000
+    try {
+      const response = await fetch(workerEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: allMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          })),
+          temperature: 0.7,
+          max_tokens: 1000
+        })
       })
-    })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorData: APIErrorResponse = await response.json()
+          if (errorData.error?.message) {
+            errorMessage = errorData.error.message
+          }
+        } catch (parseError) {
+          // 如果无法解析错误响应，使用默认错误信息
+          const errorText = await response.text()
+          errorMessage = errorText || errorMessage
+        }
+        throw new Error(errorMessage)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('REST API request failed:', error)
+      throw error
     }
+  }
 
-    return await response.json()
+  // 提取响应内容的辅助函数
+  const extractResponseContent = (data: any): string => {
+    try {
+      // 检查响应数据是否存在
+      if (!data) {
+        return '抱歉，没有收到有效的响应数据'
+      }
+
+      // 检查 choices 数组
+      if (!data.choices || !Array.isArray(data.choices)) {
+        console.error('Invalid response structure:', data)
+        return '抱歉，响应格式不正确'
+      }
+
+      if (data.choices.length === 0) {
+        return '抱歉，没有收到回复选项'
+      }
+
+      // 检查第一个选择的消息
+      const firstChoice = data.choices[0]
+      if (!firstChoice || !firstChoice.message) {
+        console.error('Invalid choice structure:', firstChoice)
+        return '抱歉，回复消息格式不正确'
+      }
+
+      const content = firstChoice.message.content
+      if (!content || typeof content !== 'string') {
+        console.error('Invalid message content:', firstChoice.message)
+        return '抱歉，没有收到有效的回复内容'
+      }
+
+      return content.trim()
+    } catch (error) {
+      console.error('Error extracting response content:', error)
+      return '抱歉，处理回复时发生错误'
+    }
   }
 
   const sendMessage = async () => {
@@ -133,45 +208,45 @@ const App: React.FC = () => {
 
       if (useGraphQL) {
         try {
-          console.log('🚀 尝试 GraphQL Query...')
-          // 首先尝试 GraphQL Query
-          const queryVariables = {
-            messages: allMessages.map(msg => ({
-              role: msg.role,
-              content: msg.content
-            })),
-            model: 'gpt-3.5-turbo',
-            temperature: 0.7,
-            maxTokens: 1000
+          console.log('🚀 尝试 GraphQL Mutation...')
+          // 优先尝试 GraphQL Mutation（更可靠）
+          const mutationVariables = {
+            input: {
+              model: 'gpt-3.5-turbo',
+              messages: allMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+              })),
+              temperature: 0.7,
+              maxTokens: 1000
+            }
           }
 
-          const graphqlData = await makeGraphQLRequest(CHAT_COMPLETION_QUERY, queryVariables)
-          data = graphqlData.chatCompletion
-          console.log('✅ GraphQL Query 成功')
+          const mutationData = await makeGraphQLRequest(CHAT_COMPLETION_MUTATION, mutationVariables)
+          data = mutationData.createChatCompletion
+          console.log('✅ GraphQL Mutation 成功')
 
-        } catch (queryError) {
-          console.warn('⚠️ GraphQL Query 失败，尝试 GraphQL Mutation...', queryError)
+        } catch (mutationError) {
+          console.warn('⚠️ GraphQL Mutation 失败，尝试 GraphQL Query...', mutationError)
           
           try {
-            // 尝试 GraphQL Mutation
-            const mutationVariables = {
-              input: {
-                model: 'gpt-3.5-turbo',
-                messages: allMessages.map(msg => ({
-                  role: msg.role,
-                  content: msg.content
-                })),
-                temperature: 0.7,
-                maxTokens: 1000
-              }
+            // 尝试 GraphQL Query
+            const queryVariables = {
+              messages: allMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+              })),
+              model: 'gpt-3.5-turbo',
+              temperature: 0.7,
+              maxTokens: 1000
             }
 
-            const mutationData = await makeGraphQLRequest(CHAT_COMPLETION_MUTATION, mutationVariables)
-            data = mutationData.createChatCompletion
-            console.log('✅ GraphQL Mutation 成功')
+            const graphqlData = await makeGraphQLRequest(CHAT_COMPLETION_QUERY, queryVariables)
+            data = graphqlData.chatCompletion
+            console.log('✅ GraphQL Query 成功')
 
-          } catch (mutationError) {
-            console.warn('⚠️ GraphQL 失败，回退到 REST API...', mutationError)
+          } catch (queryError) {
+            console.warn('⚠️ GraphQL 失败，回退到 REST API...', queryError)
             data = await makeRESTRequest(allMessages)
             console.log('✅ REST API 成功')
           }
@@ -183,23 +258,36 @@ const App: React.FC = () => {
         console.log('✅ REST API 成功')
       }
 
+      // 使用改进的内容提取函数
+      const responseContent = extractResponseContent(data)
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.choices[0]?.message?.content || '抱歉，我没有收到回复',
+        content: responseContent,
         timestamp: Date.now()
       }
 
       setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
       console.error('❌ API调用失败:', error)
-      const errorMessage: Message = {
+      
+      let errorMessage = '抱歉，发生了错误'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      } else {
+        errorMessage = '未知错误，请稍后重试'
+      }
+      
+      const errorMessageObj: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `抱歉，发生了错误：${error instanceof Error ? error.message : '未知错误'}`,
+        content: `${errorMessage}`,
         timestamp: Date.now()
       }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages(prev => [...prev, errorMessageObj])
     } finally {
       setIsLoading(false)
     }
