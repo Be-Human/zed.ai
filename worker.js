@@ -102,9 +102,9 @@ async function handleGraphQL(request, env) {
       return createSuccessResponse({
         data: {
           createChatCompletion: {
-            id: result.id,
-            choices: result.choices,
-            usage: result.usage
+            id: result.id || 'unknown',
+            choices: result.choices || [],
+            usage: result.usage || { total_tokens: 0 }
           }
         }
       });
@@ -160,15 +160,21 @@ async function processChatCompletion(requestData, env) {
   });
 
   // 调用 OpenAI API
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
-      'User-Agent': 'Zed.AI-Worker/1.0'
-    },
-    body: JSON.stringify(openaiRequest),
-  });
+  let response;
+  try {
+    response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+        'User-Agent': 'Zed.AI-Worker/1.0'
+      },
+      body: JSON.stringify(openaiRequest),
+    });
+  } catch (fetchError) {
+    console.error('Network error calling OpenAI API:', fetchError);
+    throw new Error('Failed to connect to OpenAI API. Please check your network connection.');
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -176,24 +182,82 @@ async function processChatCompletion(requestData, env) {
     
     let errorMessage = 'OpenAI API request failed';
     if (response.status === 401) {
-      errorMessage = 'Invalid OpenAI API key';
+      errorMessage = 'Invalid OpenAI API key. Please check your API key configuration.';
     } else if (response.status === 429) {
-      errorMessage = 'OpenAI API rate limit exceeded';
+      errorMessage = 'OpenAI API rate limit exceeded. Please try again later.';
     } else if (response.status === 400) {
-      errorMessage = 'Invalid request to OpenAI API';
+      errorMessage = 'Invalid request to OpenAI API. Please check your message format.';
+    } else if (response.status >= 500) {
+      errorMessage = 'OpenAI API server error. Please try again later.';
     }
     
-    throw new Error(`${errorMessage} (${response.status}): ${errorText}`);
+    throw new Error(`${errorMessage} (Status: ${response.status})`);
   }
 
-  const result = await response.json();
-  console.log('OpenAI API response received:', {
+  // 解析响应
+  let result;
+  try {
+    result = await response.json();
+  } catch (parseError) {
+    console.error('Failed to parse OpenAI API response:', parseError);
+    throw new Error('Invalid response format from OpenAI API');
+  }
+
+  // 验证响应结构
+  if (!result) {
+    throw new Error('Empty response from OpenAI API');
+  }
+
+  // 检查必需的字段
+  if (!result.choices || !Array.isArray(result.choices)) {
+    console.error('Invalid OpenAI response structure:', result);
+    
+    // 如果有错误信息，显示出来
+    if (result.error) {
+      throw new Error(`OpenAI API Error: ${result.error.message || 'Unknown error'}`);
+    }
+    
+    throw new Error('Invalid response structure from OpenAI API: missing choices array');
+  }
+
+  if (result.choices.length === 0) {
+    throw new Error('OpenAI API returned empty choices array');
+  }
+
+  // 验证第一个选择的结构
+  const firstChoice = result.choices[0];
+  if (!firstChoice.message || !firstChoice.message.content) {
+    console.error('Invalid choice structure:', firstChoice);
+    throw new Error('Invalid choice structure from OpenAI API: missing message content');
+  }
+
+  console.log('OpenAI API response received successfully:', {
     id: result.id,
     model: result.model,
-    choices: result.choices?.length
+    choicesCount: result.choices.length,
+    firstChoiceContent: firstChoice.message.content.substring(0, 100) + '...'
   });
 
-  return result;
+  // 确保返回完整的结构
+  return {
+    id: result.id || `chat-${Date.now()}`,
+    object: result.object || 'chat.completion',
+    created: result.created || Math.floor(Date.now() / 1000),
+    model: result.model || openaiRequest.model,
+    choices: result.choices.map((choice, index) => ({
+      index: choice.index !== undefined ? choice.index : index,
+      message: {
+        role: choice.message?.role || 'assistant',
+        content: choice.message?.content || ''
+      },
+      finish_reason: choice.finish_reason || 'stop'
+    })),
+    usage: result.usage || {
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0
+    }
+  };
 }
 
 // 请求验证函数
@@ -209,12 +273,36 @@ function validateChatRequest(body) {
   } else {
     body.messages.forEach((msg, index) => {
       if (!msg.role || !['user', 'assistant', 'system'].includes(msg.role)) {
-        errors.push(`Message ${index}: invalid or missing role`);
+        errors.push(`Message ${index}: invalid or missing role (must be user, assistant, or system)`);
       }
       if (!msg.content || typeof msg.content !== 'string') {
-        errors.push(`Message ${index}: invalid or missing content`);
+        errors.push(`Message ${index}: invalid or missing content (must be a non-empty string)`);
+      }
+      if (msg.content && msg.content.length > 32000) {
+        errors.push(`Message ${index}: content too long (max 32000 characters)`);
       }
     });
+  }
+
+  // 验证模型名称
+  if (body.model && typeof body.model !== 'string') {
+    errors.push('Field "model" must be a string');
+  }
+
+  // 验证温度
+  if (body.temperature !== undefined) {
+    const temp = Number(body.temperature);
+    if (isNaN(temp) || temp < 0 || temp > 2) {
+      errors.push('Field "temperature" must be a number between 0 and 2');
+    }
+  }
+
+  // 验证最大令牌数
+  if (body.max_tokens !== undefined || body.maxTokens !== undefined) {
+    const tokens = Number(body.max_tokens || body.maxTokens);
+    if (isNaN(tokens) || tokens < 1 || tokens > 4000) {
+      errors.push('Field "max_tokens" must be a number between 1 and 4000');
+    }
   }
 
   return {
