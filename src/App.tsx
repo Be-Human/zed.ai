@@ -15,7 +15,7 @@ const App: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // 配置 Cloudflare Worker 端点
-  const workerEndpoint = import.meta.env?.VITE_WORKER_ENDPOINT || 'https://zed-ai-worker.your-subdomain.workers.dev'
+  const workerEndpoint = import.meta.env?.VITE_WORKER_ENDPOINT || 'https://zed-ai-worker.to-be-herman.workers.dev'
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
