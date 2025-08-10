@@ -14,9 +14,9 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // 获取 API 配置
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY
-  const baseUrl = import.meta.env.VITE_OPENAI_BASE_URL || 'https://api.openai.com/v1'
+  // 获取 API 配置 - 使用可选访问和默认值
+  const apiKey = import.meta.env?.VITE_OPENAI_API_KEY || ''
+  const baseUrl = import.meta.env?.VITE_OPENAI_BASE_URL || 'https://api.openai.com/v1'
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
