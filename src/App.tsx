@@ -8,18 +8,110 @@ interface Message {
   timestamp: number
 }
 
+// GraphQL 查询定义
+const CHAT_COMPLETION_QUERY = `
+  query ChatCompletion($messages: [MessageInput!]!, $model: String!, $temperature: Float, $maxTokens: Int) {
+    chatCompletion(
+      messages: $messages
+      model: $model
+      temperature: $temperature
+      maxTokens: $maxTokens
+    ) {
+      id
+      choices {
+        message {
+          role
+          content
+        }
+      }
+    }
+  }
+`
+
+const CHAT_COMPLETION_MUTATION = `
+  mutation CreateChatCompletion($input: ChatCompletionInput!) {
+    createChatCompletion(input: $input) {
+      id
+      choices {
+        message {
+          role
+          content
+        }
+      }
+    }
+  }
+`
+
+interface GraphQLResponse<T> {
+  data?: T
+  errors?: Array<{ message: string }>
+}
+
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [useGraphQL, setUseGraphQL] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // 配置 Cloudflare Worker 端点
+  // Worker 端点配置
   const workerEndpoint = import.meta.env?.VITE_WORKER_ENDPOINT || 'https://zed-ai-worker.to-be-herman.workers.dev'
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // GraphQL 请求函数
+  const makeGraphQLRequest = async (query: string, variables: any) => {
+    const response = await fetch(`${workerEndpoint}/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        variables
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`GraphQL HTTP error! status: ${response.status}`)
+    }
+
+    const result: GraphQLResponse<any> = await response.json()
+    
+    if (result.errors && result.errors.length > 0) {
+      throw new Error(`GraphQL error: ${result.errors.map(e => e.message).join(', ')}`)
+    }
+
+    return result.data
+  }
+
+  // REST API 请求函数
+  const makeRESTRequest = async (allMessages: Message[]) => {
+    const response = await fetch(workerEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: allMessages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })),
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  }
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return
@@ -37,30 +129,60 @@ const App: React.FC = () => {
 
     try {
       const allMessages = [...messages, userMessage]
+      let data: any
 
-      // 调用 Cloudflare Worker
-      const response = await fetch(workerEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: allMessages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-          })),
-          temperature: 0.7,
-          max_tokens: 1000
-        })
-      })
+      if (useGraphQL) {
+        try {
+          console.log('🚀 尝试 GraphQL Query...')
+          // 首先尝试 GraphQL Query
+          const queryVariables = {
+            messages: allMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            })),
+            model: 'gpt-3.5-turbo',
+            temperature: 0.7,
+            maxTokens: 1000
+          }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+          const graphqlData = await makeGraphQLRequest(CHAT_COMPLETION_QUERY, queryVariables)
+          data = graphqlData.chatCompletion
+          console.log('✅ GraphQL Query 成功')
+
+        } catch (queryError) {
+          console.warn('⚠️ GraphQL Query 失败，尝试 GraphQL Mutation...', queryError)
+          
+          try {
+            // 尝试 GraphQL Mutation
+            const mutationVariables = {
+              input: {
+                model: 'gpt-3.5-turbo',
+                messages: allMessages.map(msg => ({
+                  role: msg.role,
+                  content: msg.content
+                })),
+                temperature: 0.7,
+                maxTokens: 1000
+              }
+            }
+
+            const mutationData = await makeGraphQLRequest(CHAT_COMPLETION_MUTATION, mutationVariables)
+            data = mutationData.createChatCompletion
+            console.log('✅ GraphQL Mutation 成功')
+
+          } catch (mutationError) {
+            console.warn('⚠️ GraphQL 失败，回退到 REST API...', mutationError)
+            data = await makeRESTRequest(allMessages)
+            console.log('✅ REST API 成功')
+          }
+        }
+      } else {
+        // 直接使用 REST API
+        console.log('🔗 使用 REST API...')
+        data = await makeRESTRequest(allMessages)
+        console.log('✅ REST API 成功')
       }
 
-      const data = await response.json()
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -70,7 +192,7 @@ const App: React.FC = () => {
 
       setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
-      console.error('Worker API Error:', error)
+      console.error('❌ API调用失败:', error)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -94,7 +216,18 @@ const App: React.FC = () => {
     <div className="app">
       <header className="header">
         <h1>Zed.AI</h1>
-        <p>智能对话助手 (Cloudflare Workers)</p>
+        <p>智能对话助手 (Cloudflare Workers + GraphQL)</p>
+        <div style={{ marginTop: '10px' }}>
+          <label style={{ color: 'white', fontSize: '14px' }}>
+            <input
+              type="checkbox"
+              checked={useGraphQL}
+              onChange={(e) => setUseGraphQL(e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            优先使用 GraphQL
+          </label>
+        </div>
       </header>
 
       <main className="chat-container">
@@ -102,8 +235,10 @@ const App: React.FC = () => {
           {messages.length === 0 && (
             <div className="welcome">
               <h2>👋 欢迎使用 Zed.AI</h2>
-              <p>通过 Cloudflare Workers 安全调用 OpenAI API</p>
-              <small>🔒 API密钥安全 • ⚡ 全球加速 • 💰 几乎免费</small>
+              <p>支持 GraphQL 和 REST API 的智能对话</p>
+              <small>
+                🔒 API密钥安全 • ⚡ 全球加速 • 🚀 GraphQL + REST • 💰 几乎免费
+              </small>
             </div>
           )}
           
