@@ -354,12 +354,14 @@ const App: React.FC = () => {
               className={`message ${message.role}`}
               onMouseEnter={() => setHoveredMessageId(message.id)}
               onMouseLeave={() => setHoveredMessageId(null)}
-              style={{ position: 'relative' }}
             >
               <div className="message-avatar">
                 {message.role === 'user' ? '👤' : '🤖'}
               </div>
-              <div className="message-content">
+              <div 
+                className="message-content"
+                style={{ position: 'relative' }}
+              >
                 {message.role === 'assistant' ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
@@ -389,37 +391,37 @@ const App: React.FC = () => {
                 ) : (
                   message.content
                 )}
+                {message.role === 'assistant' && hoveredMessageId === message.id && (
+                  <button
+                    onClick={() => copyToClipboard(message.content, message.id)}
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      padding: '2px 6px',
+                      fontSize: '11px',
+                      backgroundColor: '#667eea',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      zIndex: '10',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#5a6fd8';
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#667eea';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    {copiedMessageId === message.id ? '已复制✓' : '复制'}
+                  </button>
+                )}
               </div>
-              {message.role === 'assistant' && hoveredMessageId === message.id && (
-                <button
-                  onClick={() => copyToClipboard(message.content, message.id)}
-                  style={{
-                    position: 'absolute',
-                    top: '0',
-                    right: '0',
-                    padding: '4px 8px',
-                    fontSize: '12px',
-                    backgroundColor: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    zIndex: '10',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#5a6fd8';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#667eea';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
-                >
-                  {copiedMessageId === message.id ? '已复制✓' : '复制'}
-                </button>
-              )}
             </div>
           ))}
           
