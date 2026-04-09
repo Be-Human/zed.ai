@@ -63,6 +63,8 @@ const App: React.FC = () => {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [useGraphQL, setUseGraphQL] = useState(true)
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Worker 端点配置
@@ -297,6 +299,18 @@ const App: React.FC = () => {
     }
   }
 
+  const copyToClipboard = async (text: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedMessageId(messageId)
+      setTimeout(() => {
+        setCopiedMessageId(null)
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to copy:', error)
+    }
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -335,7 +349,13 @@ const App: React.FC = () => {
           )}
           
           {messages.map((message) => (
-            <div key={message.id} className={`message ${message.role}`}>
+            <div 
+              key={message.id} 
+              className={`message ${message.role}`}
+              onMouseEnter={() => setHoveredMessageId(message.id)}
+              onMouseLeave={() => setHoveredMessageId(null)}
+              style={{ position: 'relative' }}
+            >
               <div className="message-avatar">
                 {message.role === 'user' ? '👤' : '🤖'}
               </div>
@@ -370,6 +390,36 @@ const App: React.FC = () => {
                   message.content
                 )}
               </div>
+              {message.role === 'assistant' && hoveredMessageId === message.id && (
+                <button
+                  onClick={() => copyToClipboard(message.content, message.id)}
+                  style={{
+                    position: 'absolute',
+                    top: '0',
+                    right: '0',
+                    padding: '4px 8px',
+                    fontSize: '12px',
+                    backgroundColor: '#667eea',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    zIndex: '10',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#5a6fd8';
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#667eea';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                >
+                  {copiedMessageId === message.id ? '已复制✓' : '复制'}
+                </button>
+              )}
             </div>
           ))}
           
