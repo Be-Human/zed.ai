@@ -63,7 +63,21 @@ const App: React.FC = () => {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [useGraphQL, setUseGraphQL] = useState(true)
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const copyToClipboard = async (text: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedMessageId(messageId)
+      setTimeout(() => {
+        setCopiedMessageId(null)
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
 
   // Worker 端点配置
   const workerEndpoint = import.meta.env?.VITE_WORKER_ENDPOINT || 'https://zed-ai-worker.to-be-herman.workers.dev'
@@ -335,37 +349,99 @@ const App: React.FC = () => {
           )}
           
           {messages.map((message) => (
-            <div key={message.id} className={`message ${message.role}`}>
+            <div 
+              key={message.id} 
+              className={`message ${message.role}`}
+              onMouseEnter={() => setHoveredMessageId(message.id)}
+              onMouseLeave={() => setHoveredMessageId(null)}
+            >
               <div className="message-avatar">
                 {message.role === 'user' ? '👤' : '🤖'}
               </div>
-              <div className="message-content">
+              <div 
+                className="message-content"
+                style={{ 
+                  position: 'relative',
+                  paddingRight: message.role === 'assistant' ? '40px' : '0'
+                }}
+              >
                 {message.role === 'assistant' ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      code({ node, className, children, ...props }) {
-                        const match = /language-(\w+)/.exec(className || '')
-                        const isInline = !match
-                        return !isInline ? (
-                          <SyntaxHighlighter
-                            style={oneDark}
-                            language={match[1]}
-                            PreTag="div"
-                            className="code-block"
-                          >
-                            {String(children).replace(/\n$/, '')}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                        )
-                      }
-                    }}
-                  >
-                    {message.content}
-                  </ReactMarkdown>
+                  <>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        code({ node, className, children, ...props }) {
+                          const match = /language-(\w+)/.exec(className || '')
+                          const isInline = !match
+                          return !isInline ? (
+                            <SyntaxHighlighter
+                              style={oneDark}
+                              language={match[1]}
+                              PreTag="div"
+                              className="code-block"
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          )
+                        }
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      {copiedMessageId === message.id && (
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            color: '#4ade80',
+                            fontWeight: '500',
+                            animation: 'fadeIn 0.3s ease-in-out'
+                          }}
+                        >
+                          已复制✓
+                        </span>
+                      )}
+                      <button
+                        onClick={() => copyToClipboard(message.content, message.id)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: (hoveredMessageId === message.id || copiedMessageId === message.id) ? 1 : 0,
+                          transition: 'opacity 0.2s ease-in-out, background-color 0.2s ease-in-out',
+                          color: '#9ca3af',
+                          fontSize: '14px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                        title="复制消息"
+                      >
+                        📋
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   message.content
                 )}
