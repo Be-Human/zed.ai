@@ -26,6 +26,32 @@ const getModelShortLabel = (model: string): string => {
   return found ? found.shortLabel : model
 }
 
+const isValidModel = (model: string): model is ModelType => {
+  return MODELS.some(m => m.value === model)
+}
+
+const STORAGE_KEY_MODEL = 'zedai-selected-model'
+
+const getSavedModel = (): ModelType => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_MODEL)
+    if (saved && isValidModel(saved)) {
+      return saved
+    }
+  } catch (e) {
+    console.warn('Failed to read model from localStorage:', e)
+  }
+  return 'gpt-3.5-turbo'
+}
+
+const saveModelToStorage = (model: ModelType) => {
+  try {
+    localStorage.setItem(STORAGE_KEY_MODEL, model)
+  } catch (e) {
+    console.warn('Failed to save model to localStorage:', e)
+  }
+}
+
 // GraphQL 查询定义
 const CHAT_COMPLETION_QUERY = `
   query ChatCompletion($messages: [MessageInput!]!, $model: String!, $temperature: Float, $maxTokens: Int) {
@@ -82,7 +108,7 @@ const App: React.FC = () => {
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportFormat, setExportFormat] = useState<'md' | 'txt'>('md')
   const [exportPlainText, setExportPlainText] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<ModelType>('gpt-3.5-turbo')
+  const [selectedModel, setSelectedModel] = useState<ModelType>(getSavedModel)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -116,6 +142,10 @@ const App: React.FC = () => {
   useEffect(() => {
     autoResize()
   }, [input])
+
+  useEffect(() => {
+    saveModelToStorage(selectedModel)
+  }, [selectedModel])
 
   // GraphQL 请求函数（改进版）
   const makeGraphQLRequest = async (query: string, variables: any) => {
