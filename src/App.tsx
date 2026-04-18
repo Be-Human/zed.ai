@@ -354,6 +354,37 @@ const App: React.FC = () => {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
   }
 
+  const formatMessageTime = (timestamp: number): string => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    
+    if (messageDate.getTime() === today.getTime()) {
+      return `${hours}:${minutes}`
+    }
+    
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    
+    if (messageDate.getTime() === yesterday.getTime()) {
+      return `昨天 ${hours}:${minutes}`
+    }
+    
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    
+    if (date.getFullYear() === now.getFullYear()) {
+      return `${month}-${day} ${hours}:${minutes}`
+    }
+    
+    const year = date.getFullYear()
+    return `${year}-${month}-${day} ${hours}:${minutes}`
+  }
+
   const removeMarkdownFormatting = (text: string): string => {
     let result = text
     
@@ -493,94 +524,99 @@ const App: React.FC = () => {
               <div className="message-avatar">
                 {message.role === 'user' ? '👤' : '🤖'}
               </div>
-              {message.role === 'assistant' ? (
-                <div 
-                  className="message-content"
-                  style={{ 
-                    position: 'relative',
-                    paddingRight: '40px'
-                  }}
-                >
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      code({ node, className, children, ...props }) {
-                        const match = /language-(\w+)/.exec(className || '')
-                        const isInline = !match
-                        return !isInline ? (
-                          <SyntaxHighlighter
-                            style={oneDark}
-                            language={match[1]}
-                            PreTag="div"
-                            className="code-block"
-                          >
-                            {String(children).replace(/\n$/, '')}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                        )
-                      }
+              <div className="message-wrapper">
+                {message.role === 'assistant' ? (
+                  <div 
+                    className="message-content"
+                    style={{ 
+                      position: 'relative',
+                      paddingRight: '40px'
                     }}
                   >
-                    {message.content}
-                  </ReactMarkdown>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    {copiedMessageId === message.id && (
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          color: '#4ade80',
-                          fontWeight: '500',
-                          animation: 'fadeIn 0.3s ease-in-out'
-                        }}
-                      >
-                        已复制✓
-                      </span>
-                    )}
-                    <button
-                      onClick={() => copyToClipboard(message.content, message.id)}
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        code({ node, className, children, ...props }) {
+                          const match = /language-(\w+)/.exec(className || '')
+                          const isInline = !match
+                          return !isInline ? (
+                            <SyntaxHighlighter
+                              style={oneDark}
+                              language={match[1]}
+                              PreTag="div"
+                              className="code-block"
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          )
+                        }
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                    <div
                       style={{
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        borderRadius: '4px',
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: (hoveredMessageId === message.id || copiedMessageId === message.id) ? 1 : 0,
-                        transition: 'opacity 0.2s ease-in-out, background-color 0.2s ease-in-out',
-                        color: '#9ca3af',
-                        fontSize: '14px'
+                        gap: '8px'
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                      title="复制消息"
                     >
-                      📋
-                    </button>
+                      {copiedMessageId === message.id && (
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            color: '#4ade80',
+                            fontWeight: '500',
+                            animation: 'fadeIn 0.3s ease-in-out'
+                          }}
+                        >
+                          已复制✓
+                        </span>
+                      )}
+                      <button
+                        onClick={() => copyToClipboard(message.content, message.id)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: (hoveredMessageId === message.id || copiedMessageId === message.id) ? 1 : 0,
+                          transition: 'opacity 0.2s ease-in-out, background-color 0.2s ease-in-out',
+                          color: '#9ca3af',
+                          fontSize: '14px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                        title="复制消息"
+                      >
+                        📋
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <div className="message-content">
+                    {message.content}
+                  </div>
+                )}
+                <div className="message-time">
+                  {formatMessageTime(message.timestamp)}
                 </div>
-              ) : (
-                <div className="message-content">
-                  {message.content}
-                </div>
-              )}
+              </div>
             </div>
           ))}
           
