@@ -66,6 +66,15 @@ const App: React.FC = () => {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const autoResize = () => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`
+    }
+  }
 
   const copyToClipboard = async (text: string, messageId: string) => {
     try {
@@ -85,6 +94,10 @@ const App: React.FC = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    autoResize()
+  }, [input])
 
   // GraphQL 请求函数（改进版）
   const makeGraphQLRequest = async (query: string, variables: any) => {
@@ -477,6 +490,7 @@ const App: React.FC = () => {
         <div className="input-area">
           <div className="input-wrapper">
             <textarea
+              ref={textareaRef}
               className="input-field"
               value={input}
               onChange={(e) => setInput(e.target.value)}
