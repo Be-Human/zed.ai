@@ -357,6 +357,19 @@ const App: React.FC = () => {
   const formatMessageTime = (timestamp: number): string => {
     const date = new Date(timestamp)
     const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSeconds = Math.floor(diffMs / 1000)
+    const diffMinutes = Math.floor(diffSeconds / 60)
+    const diffHours = Math.floor(diffMinutes / 60)
+    
+    if (diffSeconds < 60) {
+      return '刚刚'
+    }
+    
+    if (diffMinutes < 60) {
+      return `${diffMinutes}分钟前`
+    }
+    
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
     
