@@ -206,6 +206,28 @@
   max-width: 100%;
 }
 
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.model-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  opacity: 0.8;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.message:hover .model-badge {
+  opacity: 1;
+}
+
 .message-time {
   font-size: 0.75rem;
   color: #9ca3af;

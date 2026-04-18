@@ -10,15 +10,21 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: number
+  model?: string
 }
 
 type ModelType = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4o'
 
-const MODELS: { value: ModelType; label: string }[] = [
-  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
-  { value: 'gpt-4', label: 'GPT-4' },
-  { value: 'gpt-4o', label: 'GPT-4o' }
+const MODELS: { value: ModelType; label: string; shortLabel: string }[] = [
+  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', shortLabel: 'GPT-3.5' },
+  { value: 'gpt-4', label: 'GPT-4', shortLabel: 'GPT-4' },
+  { value: 'gpt-4o', label: 'GPT-4o', shortLabel: 'GPT-4o' }
 ]
+
+const getModelShortLabel = (model: string): string => {
+  const found = MODELS.find(m => m.value === model)
+  return found ? found.shortLabel : model
+}
 
 // GraphQL 查询定义
 const CHAT_COMPLETION_QUERY = `
@@ -308,7 +314,8 @@ const App: React.FC = () => {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: responseContent,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        model: selectedModel
       }
 
       setMessages(prev => [...prev, assistantMessage])
@@ -328,7 +335,8 @@ const App: React.FC = () => {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: `${errorMessage}`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        model: selectedModel
       }
       setMessages(prev => [...prev, errorMessageObj])
     } finally {
@@ -650,8 +658,15 @@ const App: React.FC = () => {
                     {message.content}
                   </div>
                 )}
-                <div className="message-time">
-                  {formatMessageTime(message.timestamp)}
+                <div className="message-meta">
+                  {message.role === 'assistant' && message.model && (
+                    <span className="model-badge">
+                      {getModelShortLabel(message.model)}
+                    </span>
+                  )}
+                  <span className="message-time">
+                    {formatMessageTime(message.timestamp)}
+                  </span>
                 </div>
               </div>
             </div>
