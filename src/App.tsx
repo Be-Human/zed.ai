@@ -318,6 +318,15 @@ const App: React.FC = () => {
     }
   }
 
+  const clearChat = () => {
+    if (messages.length === 0 && input.trim() === '') return
+    
+    if (window.confirm('确定要清空所有对话记录吗？此操作不可撤销。')) {
+      setMessages([])
+      setInput('')
+    }
+  }
+
   return (
     <div className="app">
       <header className="header">
@@ -476,6 +485,14 @@ const App: React.FC = () => {
               disabled={isLoading}
               rows={1}
             />
+            <button
+              className="clear-button"
+              onClick={clearChat}
+              disabled={isLoading || (messages.length === 0 && input.trim() === '')}
+              title="清空对话"
+            >
+              🗑️
+            </button>
             <button
               className="send-button"
               onClick={sendMessage}
