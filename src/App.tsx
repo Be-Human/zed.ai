@@ -12,6 +12,14 @@ interface Message {
   timestamp: number
 }
 
+type ModelType = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4o'
+
+const MODELS: { value: ModelType; label: string }[] = [
+  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+  { value: 'gpt-4', label: 'GPT-4' },
+  { value: 'gpt-4o', label: 'GPT-4o' }
+]
+
 // GraphQL 查询定义
 const CHAT_COMPLETION_QUERY = `
   query ChatCompletion($messages: [MessageInput!]!, $model: String!, $temperature: Float, $maxTokens: Int) {
@@ -68,6 +76,7 @@ const App: React.FC = () => {
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportFormat, setExportFormat] = useState<'md' | 'txt'>('md')
   const [exportPlainText, setExportPlainText] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<ModelType>('gpt-3.5-turbo')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -144,7 +153,7 @@ const App: React.FC = () => {
   }
 
   // REST API 请求函数（改进版）
-  const makeRESTRequest = async (allMessages: Message[]) => {
+  const makeRESTRequest = async (allMessages: Message[], model: string) => {
     try {
       const response = await fetch(workerEndpoint, {
         method: 'POST',
@@ -152,7 +161,7 @@ const App: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: model,
           messages: allMessages.map(msg => ({
             role: msg.role,
             content: msg.content
@@ -246,7 +255,7 @@ const App: React.FC = () => {
           // 优先尝试 GraphQL Mutation（更可靠）
           const mutationVariables = {
             input: {
-              model: 'gpt-3.5-turbo',
+              model: selectedModel,
               messages: allMessages.map(msg => ({
                 role: msg.role,
                 content: msg.content
@@ -270,7 +279,7 @@ const App: React.FC = () => {
                 role: msg.role,
                 content: msg.content
               })),
-              model: 'gpt-3.5-turbo',
+              model: selectedModel,
               temperature: 0.7,
               maxTokens: 1000
             }
@@ -281,14 +290,14 @@ const App: React.FC = () => {
 
           } catch (queryError) {
             console.warn('⚠️ GraphQL 失败，回退到 REST API...', queryError)
-            data = await makeRESTRequest(allMessages)
+            data = await makeRESTRequest(allMessages, selectedModel)
             console.log('✅ REST API 成功')
           }
         }
       } else {
         // 直接使用 REST API
         console.log('🔗 使用 REST API...')
-        data = await makeRESTRequest(allMessages)
+        data = await makeRESTRequest(allMessages, selectedModel)
         console.log('✅ REST API 成功')
       }
 
@@ -502,13 +511,28 @@ const App: React.FC = () => {
       <header className="header">
         <h1>Zed.AI</h1>
         <p>智能对话助手 (Cloudflare Workers + GraphQL)</p>
-        <div style={{ marginTop: '10px' }}>
-          <label style={{ color: 'white', fontSize: '14px' }}>
+        <div className="header-controls">
+          <div className="model-selector">
+            <label htmlFor="model-select" className="model-label">模型：</label>
+            <select
+              id="model-select"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value as ModelType)}
+              className="model-select"
+              disabled={isLoading}
+            >
+              {MODELS.map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <label className="graphql-toggle">
             <input
               type="checkbox"
               checked={useGraphQL}
               onChange={(e) => setUseGraphQL(e.target.checked)}
-              style={{ marginRight: '8px' }}
             />
             优先使用 GraphQL
           </label>
