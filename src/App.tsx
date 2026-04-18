@@ -65,6 +65,9 @@ const App: React.FC = () => {
   const [useGraphQL, setUseGraphQL] = useState(true)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportFormat, setExportFormat] = useState<'md' | 'txt'>('md')
+  const [exportPlainText, setExportPlainText] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -351,33 +354,103 @@ const App: React.FC = () => {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
   }
 
+  const removeMarkdownFormatting = (text: string): string => {
+    let result = text
+    
+    result = result.replace(/\*\*\*(.*?)\*\*\*/g, '$1')
+    
+    result = result.replace(/\*\*(.*?)\*\*/g, '$1')
+    
+    result = result.replace(/\*(.*?)\*/g, '$1')
+    
+    result = result.replace(/___(.*?)___/g, '$1')
+    
+    result = result.replace(/__(.*?)__/g, '$1')
+    
+    result = result.replace(/_(.*?)_/g, '$1')
+    
+    result = result.replace(/`([^`]+)`/g, '$1')
+    
+    result = result.replace(/```[\s\S]*?```/g, (match) => {
+      const codeContent = match.replace(/```\w*\n?([\s\S]*?)\n?```/g, '$1')
+      return codeContent.trim()
+    })
+    
+    result = result.replace(/^#+\s+(.*)$/gm, '$1')
+    
+    result = result.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    
+    result = result.replace(/^---+$/gm, '')
+    
+    result = result.replace(/^>\s+(.*)$/gm, '$1')
+    
+    result = result.replace(/^\s*[-*+]\s+/gm, '• ')
+    
+    result = result.replace(/^\s*(\d+)\.\s+/gm, '$1. ')
+    
+    result = result.replace(/\n{3,}/g, '\n\n')
+    
+    return result.trim()
+  }
+
   const exportChat = () => {
     if (messages.length === 0) {
       alert('没有对话记录可导出')
       return
     }
+    setShowExportModal(true)
+  }
 
-    let content = '# Zed.AI 对话记录\n\n'
-    content += `导出时间: ${formatDate(Date.now())}\n`
-    content += `消息总数: ${messages.length}\n\n`
-    content += '---\n\n'
-
-    messages.forEach((message) => {
-      const role = message.role === 'user' ? '用户' : 'AI助手'
-      content += `**${role}** (${formatDate(message.timestamp)})\n\n`
-      content += `${message.content}\n\n`
+  const performExport = () => {
+    let content = ''
+    
+    if (exportFormat === 'md') {
+      content += '# Zed.AI 对话记录\n\n'
+      content += `导出时间: ${formatDate(Date.now())}\n`
+      content += `消息总数: ${messages.length}\n\n`
       content += '---\n\n'
-    })
 
-    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })
+      messages.forEach((message) => {
+        const role = message.role === 'user' ? '用户' : 'AI助手'
+        const messageContent = exportPlainText 
+          ? removeMarkdownFormatting(message.content) 
+          : message.content
+        
+        content += `**${role}** (${formatDate(message.timestamp)})\n\n`
+        content += `${messageContent}\n\n`
+        content += '---\n\n'
+      })
+    } else {
+      content += 'Zed.AI 对话记录\n'
+      content += '================\n\n'
+      content += `导出时间: ${formatDate(Date.now())}\n`
+      content += `消息总数: ${messages.length}\n\n`
+      content += '----------------\n\n'
+
+      messages.forEach((message) => {
+        const role = message.role === 'user' ? '【用户】' : '【AI助手】'
+        const messageContent = exportPlainText 
+          ? removeMarkdownFormatting(message.content) 
+          : message.content
+        
+        content += `${role} (${formatDate(message.timestamp)})\n\n`
+        content += `${messageContent}\n\n`
+        content += '----------------\n\n'
+      })
+    }
+
+    const mimeType = exportFormat === 'md' ? 'text/markdown;charset=utf-8' : 'text/plain;charset=utf-8'
+    const blob = new Blob([content], { type: mimeType })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `zedai-chat-${new Date().toISOString().slice(0, 10)}.md`
+    link.download = `zedai-chat-${new Date().toISOString().slice(0, 10)}.${exportFormat}`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+    
+    setShowExportModal(false)
   }
 
   return (
@@ -564,6 +637,69 @@ const App: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {showExportModal && (
+          <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <h3>导出选项</h3>
+              
+              <div className="export-section">
+                <label className="section-label">文件格式：</label>
+                <div className="radio-group">
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="format"
+                      value="md"
+                      checked={exportFormat === 'md'}
+                      onChange={() => setExportFormat('md')}
+                    />
+                    <span>Markdown (.md)</span>
+                  </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="format"
+                      value="txt"
+                      checked={exportFormat === 'txt'}
+                      onChange={() => setExportFormat('txt')}
+                    />
+                    <span>纯文本 (.txt)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="export-section">
+                <label className="section-label">内容格式：</label>
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={exportPlainText}
+                      onChange={(e) => setExportPlainText(e.target.checked)}
+                    />
+                    <span>去除 Markdown 格式符号（导出纯文字）</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="modal-buttons">
+                <button
+                  className="modal-button cancel"
+                  onClick={() => setShowExportModal(false)}
+                >
+                  取消
+                </button>
+                <button
+                  className="modal-button confirm"
+                  onClick={performExport}
+                >
+                  导出
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )
