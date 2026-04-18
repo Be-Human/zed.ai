@@ -340,6 +340,46 @@ const App: React.FC = () => {
     }
   }
 
+  const formatDate = (timestamp: number): string => {
+    const date = new Date(timestamp)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  }
+
+  const exportChat = () => {
+    if (messages.length === 0) {
+      alert('没有对话记录可导出')
+      return
+    }
+
+    let content = '# Zed.AI 对话记录\n\n'
+    content += `导出时间: ${formatDate(Date.now())}\n`
+    content += `消息总数: ${messages.length}\n\n`
+    content += '---\n\n'
+
+    messages.forEach((message) => {
+      const role = message.role === 'user' ? '用户' : 'AI助手'
+      content += `**${role}** (${formatDate(message.timestamp)})\n\n`
+      content += `${message.content}\n\n`
+      content += '---\n\n'
+    })
+
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `zedai-chat-${new Date().toISOString().slice(0, 10)}.md`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="app">
       <header className="header">
@@ -506,6 +546,14 @@ const App: React.FC = () => {
               title="清空对话"
             >
               🗑️
+            </button>
+            <button
+              className="export-button"
+              onClick={exportChat}
+              disabled={isLoading || messages.length === 0}
+              title="导出对话记录"
+            >
+              📥
             </button>
             <button
               className="send-button"
