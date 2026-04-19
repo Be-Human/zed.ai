@@ -484,6 +484,18 @@
   }
 }
 
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 @keyframes typing {
   0%, 80%, 100% {
     transform: scale(0);
@@ -537,10 +549,59 @@
   color: #e74c3c;
 }
 
-.message-content .code-block {
+.message-content .code-block-wrapper {
   margin: 0.75rem 0;
   border-radius: 8px;
   overflow: hidden;
+  background: #282c34;
+  border: 1px solid #444851;
+}
+
+.message-content .code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: #21252b;
+  border-bottom: 1px solid #444851;
+}
+
+.message-content .code-language {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #abb2bf;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.message-content .code-copy-button {
+  background: transparent;
+  border: 1px solid #444851;
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  color: #abb2bf;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.message-content .code-copy-button:hover {
+  background: #3e4451;
+  border-color: #565c64;
+  color: #e6e6e6;
+}
+
+.message-content .code-copy-button.copied {
+  background: #4ade80;
+  border-color: #22c55e;
+  color: #166534;
+  animation: pulse 0.3s ease-in-out;
+}
+
+.message-content .code-block {
+  margin: 0;
+  border-radius: 0;
+  overflow: auto;
 }
 
 .message-content .code-block pre {
