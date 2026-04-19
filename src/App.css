@@ -290,7 +290,8 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0.5rem 0;
+  padding: 0.5rem;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -304,9 +305,6 @@
 .system-prompt-toggle:hover:not(:disabled) {
   color: #5a67d8;
   background: rgba(102, 126, 234, 0.05);
-  border-radius: 8px;
-  padding: 0.5rem;
-  margin: -0.5rem;
 }
 
 .system-prompt-toggle:disabled {

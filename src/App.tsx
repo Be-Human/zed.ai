@@ -31,6 +31,7 @@ const isValidModel = (model: string): model is ModelType => {
 }
 
 const STORAGE_KEY_MODEL = 'zedai-selected-model'
+const STORAGE_KEY_SYSTEM_PROMPT = 'zedai-system-prompt'
 
 const getSavedModel = (): ModelType => {
   try {
@@ -49,6 +50,26 @@ const saveModelToStorage = (model: ModelType) => {
     localStorage.setItem(STORAGE_KEY_MODEL, model)
   } catch (e) {
     console.warn('Failed to save model to localStorage:', e)
+  }
+}
+
+const getSavedSystemPrompt = (): string => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_SYSTEM_PROMPT)
+    if (saved) {
+      return saved
+    }
+  } catch (e) {
+    console.warn('Failed to read system prompt from localStorage:', e)
+  }
+  return ''
+}
+
+const saveSystemPromptToStorage = (prompt: string) => {
+  try {
+    localStorage.setItem(STORAGE_KEY_SYSTEM_PROMPT, prompt)
+  } catch (e) {
+    console.warn('Failed to save system prompt to localStorage:', e)
   }
 }
 
@@ -109,7 +130,7 @@ const App: React.FC = () => {
   const [exportFormat, setExportFormat] = useState<'md' | 'txt'>('md')
   const [exportPlainText, setExportPlainText] = useState(false)
   const [selectedModel, setSelectedModel] = useState<ModelType>(getSavedModel)
-  const [systemPrompt, setSystemPrompt] = useState('')
+  const [systemPrompt, setSystemPrompt] = useState<string>(getSavedSystemPrompt)
   const [isSystemPromptExpanded, setIsSystemPromptExpanded] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -148,6 +169,10 @@ const App: React.FC = () => {
   useEffect(() => {
     saveModelToStorage(selectedModel)
   }, [selectedModel])
+
+  useEffect(() => {
+    saveSystemPromptToStorage(systemPrompt)
+  }, [systemPrompt])
 
   // GraphQL 请求函数（改进版）
   const makeGraphQLRequest = async (query: string, variables: any) => {
