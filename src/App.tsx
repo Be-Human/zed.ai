@@ -215,6 +215,8 @@ const App: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<ModelType>(getSavedModel)
   const [systemPrompt, setSystemPrompt] = useState<string>(getSavedSystemPrompt)
   const [isSystemPromptExpanded, setIsSystemPromptExpanded] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -235,6 +237,248 @@ const App: React.FC = () => {
       }, 2000)
     } catch (err) {
       console.error('Failed to copy:', err)
+    }
+  }
+
+  const handleRegenerate = async (messageId: string) => {
+    if (isLoading) return
+
+    const messageIndex = messages.findIndex(m => m.id === messageId)
+    if (messageIndex === -1 || messages[messageIndex].role !== 'assistant') return
+
+    const userMessageIndex = messageIndex - 1
+    if (userMessageIndex < 0 || messages[userMessageIndex].role !== 'user') return
+
+    const messagesToKeep = messages.slice(0, messageIndex)
+    setMessages(messagesToKeep)
+
+    setIsLoading(true)
+
+    try {
+      let allMessages: Message[] = messagesToKeep
+      
+      if (systemPrompt.trim()) {
+        const systemMessage: Message = {
+          id: `system-${Date.now()}`,
+          role: 'system',
+          content: systemPrompt.trim(),
+          timestamp: Date.now()
+        }
+        allMessages = [systemMessage, ...allMessages]
+      }
+      
+      let data: any
+
+      if (useGraphQL) {
+        try {
+          console.log('🚀 尝试 GraphQL Mutation...')
+          const mutationVariables = {
+            input: {
+              model: selectedModel,
+              messages: allMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+              })),
+              temperature: 0.7,
+              maxTokens: 1000
+            }
+          }
+
+          const mutationData = await makeGraphQLRequest(CHAT_COMPLETION_MUTATION, mutationVariables)
+          data = mutationData.createChatCompletion
+          console.log('✅ GraphQL Mutation 成功')
+
+        } catch (mutationError) {
+          console.warn('⚠️ GraphQL Mutation 失败，尝试 GraphQL Query...', mutationError)
+          
+          try {
+            const queryVariables = {
+              messages: allMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+              })),
+              model: selectedModel,
+              temperature: 0.7,
+              maxTokens: 1000
+            }
+
+            const graphqlData = await makeGraphQLRequest(CHAT_COMPLETION_QUERY, queryVariables)
+            data = graphqlData.chatCompletion
+            console.log('✅ GraphQL Query 成功')
+
+          } catch (queryError) {
+            console.warn('⚠️ GraphQL 失败，回退到 REST API...', queryError)
+            data = await makeRESTRequest(allMessages, selectedModel)
+            console.log('✅ REST API 成功')
+          }
+        }
+      } else {
+        console.log('🔗 使用 REST API...')
+        data = await makeRESTRequest(allMessages, selectedModel)
+        console.log('✅ REST API 成功')
+      }
+
+      const responseContent = extractResponseContent(data)
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: responseContent,
+        timestamp: Date.now(),
+        model: selectedModel
+      }
+
+      setMessages(prev => [...prev, assistantMessage])
+    } catch (error) {
+      console.error('❌ API调用失败:', error)
+      
+      let errorMessage = '抱歉，发生了错误'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      } else {
+        errorMessage = '未知错误，请稍后重试'
+      }
+      
+      const errorMessageObj: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `${errorMessage}`,
+        timestamp: Date.now(),
+        model: selectedModel
+      }
+      setMessages(prev => [...prev, errorMessageObj])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleStartEdit = (messageId: string, content: string) => {
+    if (isLoading) return
+    setEditingMessageId(messageId)
+    setEditingContent(content)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null)
+    setEditingContent('')
+  }
+
+  const handleConfirmEdit = async (messageId: string) => {
+    if (isLoading || !editingContent.trim()) return
+
+    const messageIndex = messages.findIndex(m => m.id === messageId)
+    if (messageIndex === -1 || messages[messageIndex].role !== 'user') return
+
+    const messagesToKeep = messages.slice(0, messageIndex)
+    const updatedUserMessage: Message = {
+      ...messages[messageIndex],
+      content: editingContent.trim()
+    }
+
+    setEditingMessageId(null)
+    setEditingContent('')
+    setMessages([...messagesToKeep, updatedUserMessage])
+    setIsLoading(true)
+
+    try {
+      let allMessages: Message[] = [...messagesToKeep, updatedUserMessage]
+      
+      if (systemPrompt.trim()) {
+        const systemMessage: Message = {
+          id: `system-${Date.now()}`,
+          role: 'system',
+          content: systemPrompt.trim(),
+          timestamp: Date.now()
+        }
+        allMessages = [systemMessage, ...allMessages]
+      }
+      
+      let data: any
+
+      if (useGraphQL) {
+        try {
+          console.log('🚀 尝试 GraphQL Mutation...')
+          const mutationVariables = {
+            input: {
+              model: selectedModel,
+              messages: allMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+              })),
+              temperature: 0.7,
+              maxTokens: 1000
+            }
+          }
+
+          const mutationData = await makeGraphQLRequest(CHAT_COMPLETION_MUTATION, mutationVariables)
+          data = mutationData.createChatCompletion
+          console.log('✅ GraphQL Mutation 成功')
+
+        } catch (mutationError) {
+          console.warn('⚠️ GraphQL Mutation 失败，尝试 GraphQL Query...', mutationError)
+          
+          try {
+            const queryVariables = {
+              messages: allMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+              })),
+              model: selectedModel,
+              temperature: 0.7,
+              maxTokens: 1000
+            }
+
+            const graphqlData = await makeGraphQLRequest(CHAT_COMPLETION_QUERY, queryVariables)
+            data = graphqlData.chatCompletion
+            console.log('✅ GraphQL Query 成功')
+
+          } catch (queryError) {
+            console.warn('⚠️ GraphQL 失败，回退到 REST API...', queryError)
+            data = await makeRESTRequest(allMessages, selectedModel)
+            console.log('✅ REST API 成功')
+          }
+        }
+      } else {
+        console.log('🔗 使用 REST API...')
+        data = await makeRESTRequest(allMessages, selectedModel)
+        console.log('✅ REST API 成功')
+      }
+
+      const responseContent = extractResponseContent(data)
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: responseContent,
+        timestamp: Date.now(),
+        model: selectedModel
+      }
+
+      setMessages(prev => [...prev, assistantMessage])
+    } catch (error) {
+      console.error('❌ API调用失败:', error)
+      
+      let errorMessage = '抱歉，发生了错误'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      } else {
+        errorMessage = '未知错误，请稍后重试'
+      }
+      
+      const errorMessageObj: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `${errorMessage}`,
+        timestamp: Date.now(),
+        model: selectedModel
+      }
+      setMessages(prev => [...prev, errorMessageObj])
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -726,7 +970,7 @@ const App: React.FC = () => {
                     className="message-content"
                     style={{ 
                       position: 'relative',
-                      paddingRight: '40px'
+                      paddingRight: '80px'
                     }}
                   >
                     <ReactMarkdown
@@ -797,12 +1041,202 @@ const App: React.FC = () => {
                       >
                         📋
                       </button>
+                      <button
+                        onClick={() => handleRegenerate(message.id)}
+                        disabled={isLoading}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: isLoading ? 'not-allowed' : 'pointer',
+                          padding: '4px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: (hoveredMessageId === message.id || copiedMessageId === message.id) ? 1 : 0,
+                          transition: 'opacity 0.2s ease-in-out, background-color 0.2s ease-in-out',
+                          color: '#9ca3af',
+                          fontSize: '14px'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isLoading) {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                        title="重新生成"
+                      >
+                        🔄
+                      </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="message-content">
-                    {message.content}
-                  </div>
+                  editingMessageId === message.id ? (
+                    <div className="message-content" style={{ padding: '0.875rem' }}>
+                      <textarea
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
+                        style={{
+                          width: '100%',
+                          minHeight: '80px',
+                          padding: '0.75rem',
+                          border: '2px solid #667eea',
+                          borderRadius: '12px',
+                          fontSize: '1rem',
+                          fontFamily: 'inherit',
+                          resize: 'vertical',
+                          outline: 'none',
+                          background: 'white',
+                          color: '#333'
+                        }}
+                        autoFocus
+                      />
+                      <div style={{
+                        display: 'flex',
+                        gap: '8px',
+                        marginTop: '8px',
+                        justifyContent: 'flex-end'
+                      }}>
+                        <button
+                          onClick={handleCancelEdit}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '8px',
+                            background: '#e9ecef',
+                            color: '#666',
+                            fontSize: '0.9rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#dee2e6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#e9ecef';
+                          }}
+                        >
+                          取消
+                        </button>
+                        <button
+                          onClick={() => handleConfirmEdit(message.id)}
+                          disabled={!editingContent.trim()}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '8px',
+                            background: editingContent.trim() ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ccc',
+                            color: 'white',
+                            fontSize: '0.9rem',
+                            cursor: editingContent.trim() ? 'pointer' : 'not-allowed',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (editingContent.trim()) {
+                              e.currentTarget.style.transform = 'translateY(-1px)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'none';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                        >
+                          确认
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div 
+                      className="message-content"
+                      style={{ 
+                        position: 'relative',
+                        paddingRight: '80px'
+                      }}
+                    >
+                      {message.content}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        {copiedMessageId === message.id && (
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              color: '#4ade80',
+                              fontWeight: '500',
+                              animation: 'fadeIn 0.3s ease-in-out'
+                            }}
+                          >
+                            已复制✓
+                          </span>
+                        )}
+                        <button
+                          onClick={() => copyToClipboard(message.content, message.id)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: (hoveredMessageId === message.id || copiedMessageId === message.id) ? 1 : 0,
+                            transition: 'opacity 0.2s ease-in-out, background-color 0.2s ease-in-out',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            fontSize: '14px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                          title="复制消息"
+                        >
+                          📋
+                        </button>
+                        <button
+                          onClick={() => handleStartEdit(message.id, message.content)}
+                          disabled={isLoading}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: isLoading ? 'not-allowed' : 'pointer',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: (hoveredMessageId === message.id || copiedMessageId === message.id) ? 1 : 0,
+                            transition: 'opacity 0.2s ease-in-out, background-color 0.2s ease-in-out',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            fontSize: '14px'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isLoading) {
+                              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                          title="编辑消息"
+                        >
+                          ✏️
+                        </button>
+                      </div>
+                    </div>
+                  )
                 )}
                 <div className="message-meta">
                   {message.role === 'assistant' && message.model && (
