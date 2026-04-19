@@ -255,70 +255,7 @@ const App: React.FC = () => {
     setIsLoading(true)
 
     try {
-      let allMessages: Message[] = messagesToKeep
-      
-      if (systemPrompt.trim()) {
-        const systemMessage: Message = {
-          id: `system-${Date.now()}`,
-          role: 'system',
-          content: systemPrompt.trim(),
-          timestamp: Date.now()
-        }
-        allMessages = [systemMessage, ...allMessages]
-      }
-      
-      let data: any
-
-      if (useGraphQL) {
-        try {
-          console.log('🚀 尝试 GraphQL Mutation...')
-          const mutationVariables = {
-            input: {
-              model: selectedModel,
-              messages: allMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content
-              })),
-              temperature: 0.7,
-              maxTokens: 1000
-            }
-          }
-
-          const mutationData = await makeGraphQLRequest(CHAT_COMPLETION_MUTATION, mutationVariables)
-          data = mutationData.createChatCompletion
-          console.log('✅ GraphQL Mutation 成功')
-
-        } catch (mutationError) {
-          console.warn('⚠️ GraphQL Mutation 失败，尝试 GraphQL Query...', mutationError)
-          
-          try {
-            const queryVariables = {
-              messages: allMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content
-              })),
-              model: selectedModel,
-              temperature: 0.7,
-              maxTokens: 1000
-            }
-
-            const graphqlData = await makeGraphQLRequest(CHAT_COMPLETION_QUERY, queryVariables)
-            data = graphqlData.chatCompletion
-            console.log('✅ GraphQL Query 成功')
-
-          } catch (queryError) {
-            console.warn('⚠️ GraphQL 失败，回退到 REST API...', queryError)
-            data = await makeRESTRequest(allMessages, selectedModel)
-            console.log('✅ REST API 成功')
-          }
-        }
-      } else {
-        console.log('🔗 使用 REST API...')
-        data = await makeRESTRequest(allMessages, selectedModel)
-        console.log('✅ REST API 成功')
-      }
-
-      const responseContent = extractResponseContent(data)
+      const responseContent = await fetchAssistantResponse(messagesToKeep)
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -383,70 +320,8 @@ const App: React.FC = () => {
     setIsLoading(true)
 
     try {
-      let allMessages: Message[] = [...messagesToKeep, updatedUserMessage]
-      
-      if (systemPrompt.trim()) {
-        const systemMessage: Message = {
-          id: `system-${Date.now()}`,
-          role: 'system',
-          content: systemPrompt.trim(),
-          timestamp: Date.now()
-        }
-        allMessages = [systemMessage, ...allMessages]
-      }
-      
-      let data: any
-
-      if (useGraphQL) {
-        try {
-          console.log('🚀 尝试 GraphQL Mutation...')
-          const mutationVariables = {
-            input: {
-              model: selectedModel,
-              messages: allMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content
-              })),
-              temperature: 0.7,
-              maxTokens: 1000
-            }
-          }
-
-          const mutationData = await makeGraphQLRequest(CHAT_COMPLETION_MUTATION, mutationVariables)
-          data = mutationData.createChatCompletion
-          console.log('✅ GraphQL Mutation 成功')
-
-        } catch (mutationError) {
-          console.warn('⚠️ GraphQL Mutation 失败，尝试 GraphQL Query...', mutationError)
-          
-          try {
-            const queryVariables = {
-              messages: allMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content
-              })),
-              model: selectedModel,
-              temperature: 0.7,
-              maxTokens: 1000
-            }
-
-            const graphqlData = await makeGraphQLRequest(CHAT_COMPLETION_QUERY, queryVariables)
-            data = graphqlData.chatCompletion
-            console.log('✅ GraphQL Query 成功')
-
-          } catch (queryError) {
-            console.warn('⚠️ GraphQL 失败，回退到 REST API...', queryError)
-            data = await makeRESTRequest(allMessages, selectedModel)
-            console.log('✅ REST API 成功')
-          }
-        }
-      } else {
-        console.log('🔗 使用 REST API...')
-        data = await makeRESTRequest(allMessages, selectedModel)
-        console.log('✅ REST API 成功')
-      }
-
-      const responseContent = extractResponseContent(data)
+      const messagesForAPI: Message[] = [...messagesToKeep, updatedUserMessage]
+      const responseContent = await fetchAssistantResponse(messagesForAPI)
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -621,6 +496,73 @@ const App: React.FC = () => {
     }
   }
 
+  const fetchAssistantResponse = async (messages: Message[]): Promise<string> => {
+    let allMessages: Message[] = [...messages]
+    
+    if (systemPrompt.trim()) {
+      const systemMessage: Message = {
+        id: `system-${Date.now()}`,
+        role: 'system',
+        content: systemPrompt.trim(),
+        timestamp: Date.now()
+      }
+      allMessages = [systemMessage, ...allMessages]
+    }
+    
+    let data: any
+
+    if (useGraphQL) {
+      try {
+        console.log('🚀 尝试 GraphQL Mutation...')
+        const mutationVariables = {
+          input: {
+            model: selectedModel,
+            messages: allMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            })),
+            temperature: 0.7,
+            maxTokens: 1000
+          }
+        }
+
+        const mutationData = await makeGraphQLRequest(CHAT_COMPLETION_MUTATION, mutationVariables)
+        data = mutationData.createChatCompletion
+        console.log('✅ GraphQL Mutation 成功')
+
+      } catch (mutationError) {
+        console.warn('⚠️ GraphQL Mutation 失败，尝试 GraphQL Query...', mutationError)
+        
+        try {
+          const queryVariables = {
+            messages: allMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            })),
+            model: selectedModel,
+            temperature: 0.7,
+            maxTokens: 1000
+          }
+
+          const graphqlData = await makeGraphQLRequest(CHAT_COMPLETION_QUERY, queryVariables)
+          data = graphqlData.chatCompletion
+          console.log('✅ GraphQL Query 成功')
+
+        } catch (queryError) {
+          console.warn('⚠️ GraphQL 失败，回退到 REST API...', queryError)
+          data = await makeRESTRequest(allMessages, selectedModel)
+          console.log('✅ REST API 成功')
+        }
+      }
+    } else {
+      console.log('🔗 使用 REST API...')
+      data = await makeRESTRequest(allMessages, selectedModel)
+      console.log('✅ REST API 成功')
+    }
+
+    return extractResponseContent(data)
+  }
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return
 
@@ -636,74 +578,8 @@ const App: React.FC = () => {
     setIsLoading(true)
 
     try {
-      let allMessages: Message[] = [...messages, userMessage]
-      
-      if (systemPrompt.trim()) {
-        const systemMessage: Message = {
-          id: `system-${Date.now()}`,
-          role: 'system',
-          content: systemPrompt.trim(),
-          timestamp: Date.now()
-        }
-        allMessages = [systemMessage, ...allMessages]
-      }
-      
-      let data: any
-
-      if (useGraphQL) {
-        try {
-          console.log('🚀 尝试 GraphQL Mutation...')
-          // 优先尝试 GraphQL Mutation（更可靠）
-          const mutationVariables = {
-            input: {
-              model: selectedModel,
-              messages: allMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content
-              })),
-              temperature: 0.7,
-              maxTokens: 1000
-            }
-          }
-
-          const mutationData = await makeGraphQLRequest(CHAT_COMPLETION_MUTATION, mutationVariables)
-          data = mutationData.createChatCompletion
-          console.log('✅ GraphQL Mutation 成功')
-
-        } catch (mutationError) {
-          console.warn('⚠️ GraphQL Mutation 失败，尝试 GraphQL Query...', mutationError)
-          
-          try {
-            // 尝试 GraphQL Query
-            const queryVariables = {
-              messages: allMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content
-              })),
-              model: selectedModel,
-              temperature: 0.7,
-              maxTokens: 1000
-            }
-
-            const graphqlData = await makeGraphQLRequest(CHAT_COMPLETION_QUERY, queryVariables)
-            data = graphqlData.chatCompletion
-            console.log('✅ GraphQL Query 成功')
-
-          } catch (queryError) {
-            console.warn('⚠️ GraphQL 失败，回退到 REST API...', queryError)
-            data = await makeRESTRequest(allMessages, selectedModel)
-            console.log('✅ REST API 成功')
-          }
-        }
-      } else {
-        // 直接使用 REST API
-        console.log('🔗 使用 REST API...')
-        data = await makeRESTRequest(allMessages, selectedModel)
-        console.log('✅ REST API 成功')
-      }
-
-      // 使用改进的内容提取函数
-      const responseContent = extractResponseContent(data)
+      const messagesForAPI: Message[] = [...messages, userMessage]
+      const responseContent = await fetchAssistantResponse(messagesForAPI)
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
