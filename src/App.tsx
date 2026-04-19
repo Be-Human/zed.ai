@@ -73,6 +73,89 @@ const saveSystemPromptToStorage = (prompt: string) => {
   }
 }
 
+interface CodeBlockProps {
+  language: string
+  children: string
+}
+
+const CodeBlock: React.FC<CodeBlockProps> = ({ language, children }) => {
+  const [isCopied, setIsCopied] = useState(false)
+
+  const languageDisplayNames: Record<string, string> = {
+    js: 'JavaScript',
+    javascript: 'JavaScript',
+    ts: 'TypeScript',
+    typescript: 'TypeScript',
+    py: 'Python',
+    python: 'Python',
+    html: 'HTML',
+    css: 'CSS',
+    json: 'JSON',
+    md: 'Markdown',
+    markdown: 'Markdown',
+    sh: 'Shell',
+    shell: 'Shell',
+    bash: 'Bash',
+    go: 'Go',
+    golang: 'Go',
+    rust: 'Rust',
+    rs: 'Rust',
+    java: 'Java',
+    c: 'C',
+    cpp: 'C++',
+    csharp: 'C#',
+    cs: 'C#',
+    php: 'PHP',
+    ruby: 'Ruby',
+    swift: 'Swift',
+    kotlin: 'Kotlin',
+    dart: 'Dart',
+    yaml: 'YAML',
+    yml: 'YAML',
+    xml: 'XML',
+    sql: 'SQL',
+    graphql: 'GraphQL',
+    gql: 'GraphQL',
+  }
+
+  const displayLanguage = languageDisplayNames[language.toLowerCase()] || language
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(children)
+      setIsCopied(true)
+      setTimeout(() => {
+        setIsCopied(false)
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy code:', err)
+    }
+  }
+
+  return (
+    <div className="code-block-wrapper">
+      <div className="code-block-header">
+        <span className="code-language">{displayLanguage}</span>
+        <button
+          className={`code-copy-button ${isCopied ? 'copied' : ''}`}
+          onClick={handleCopy}
+          title="复制代码"
+        >
+          {isCopied ? '已复制' : '复制'}
+        </button>
+      </div>
+      <SyntaxHighlighter
+        style={oneDark}
+        language={language}
+        PreTag="div"
+        className="code-block"
+      >
+        {children}
+      </SyntaxHighlighter>
+    </div>
+  )
+}
+
 // GraphQL 查询定义
 const CHAT_COMPLETION_QUERY = `
   query ChatCompletion($messages: [MessageInput!]!, $model: String!, $temperature: Float, $maxTokens: Int) {
@@ -653,14 +736,9 @@ const App: React.FC = () => {
                           const match = /language-(\w+)/.exec(className || '')
                           const isInline = !match
                           return !isInline ? (
-                            <SyntaxHighlighter
-                              style={oneDark}
-                              language={match[1]}
-                              PreTag="div"
-                              className="code-block"
-                            >
+                            <CodeBlock language={match[1]}>
                               {String(children).replace(/\n$/, '')}
-                            </SyntaxHighlighter>
+                            </CodeBlock>
                           ) : (
                             <code className={className} {...props}>
                               {children}
