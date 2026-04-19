@@ -279,6 +279,95 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.system-prompt-section {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 1rem;
+}
+
+.system-prompt-toggle {
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: #667eea;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.system-prompt-toggle:hover:not(:disabled) {
+  color: #5a67d8;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin: -0.5rem;
+}
+
+.system-prompt-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggle-icon {
+  font-size: 0.8rem;
+  transition: transform 0.2s;
+}
+
+.toggle-text {
+  flex: 1;
+}
+
+.system-prompt-content {
+  margin-top: 0.75rem;
+  animation: slideDown 0.2s ease-out;
+}
+
+.system-prompt-input {
+  width: 100%;
+  min-height: 80px;
+  max-height: 160px;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  line-height: 1.5;
+}
+
+.system-prompt-input:focus {
+  border-color: #667eea;
+}
+
+.system-prompt-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.system-prompt-hint {
+  margin-top: 0.5rem;
+  color: #9ca3af;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .input-wrapper {
   display: flex;
   gap: 0.75rem;

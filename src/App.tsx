@@ -7,7 +7,7 @@ import './App.css'
 
 interface Message {
   id: string
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'system'
   content: string
   timestamp: number
   model?: string
@@ -109,6 +109,8 @@ const App: React.FC = () => {
   const [exportFormat, setExportFormat] = useState<'md' | 'txt'>('md')
   const [exportPlainText, setExportPlainText] = useState(false)
   const [selectedModel, setSelectedModel] = useState<ModelType>(getSavedModel)
+  const [systemPrompt, setSystemPrompt] = useState('')
+  const [isSystemPromptExpanded, setIsSystemPromptExpanded] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -282,7 +284,18 @@ const App: React.FC = () => {
     setIsLoading(true)
 
     try {
-      const allMessages = [...messages, userMessage]
+      let allMessages: Message[] = [...messages, userMessage]
+      
+      if (systemPrompt.trim()) {
+        const systemMessage: Message = {
+          id: `system-${Date.now()}`,
+          role: 'system',
+          content: systemPrompt.trim(),
+          timestamp: Date.now()
+        }
+        allMessages = [systemMessage, ...allMessages]
+      }
+      
       let data: any
 
       if (useGraphQL) {
@@ -719,6 +732,31 @@ const App: React.FC = () => {
         </div>
 
         <div className="input-area">
+          <div className="system-prompt-section">
+            <button
+              className="system-prompt-toggle"
+              onClick={() => setIsSystemPromptExpanded(!isSystemPromptExpanded)}
+              disabled={isLoading}
+            >
+              <span className="toggle-icon">{isSystemPromptExpanded ? '▼' : '▶'}</span>
+              <span className="toggle-text">System Prompt {systemPrompt.trim() ? '(已设置)' : ''}</span>
+            </button>
+            {isSystemPromptExpanded && (
+              <div className="system-prompt-content">
+                <textarea
+                  className="system-prompt-input"
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  placeholder="输入自定义系统提示词... 这将作为 system 角色的消息发送给 AI。"
+                  disabled={isLoading}
+                  rows={4}
+                />
+                <div className="system-prompt-hint">
+                  <small>提示：系统提示词会影响 AI 的整体行为和回复风格。</small>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="input-wrapper">
             <textarea
               ref={textareaRef}
