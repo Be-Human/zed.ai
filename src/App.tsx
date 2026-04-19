@@ -14,6 +14,7 @@ interface Message {
 }
 
 type ModelType = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4o'
+type Theme = 'light' | 'dark'
 
 const MODELS: { value: ModelType; label: string; shortLabel: string }[] = [
   { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', shortLabel: 'GPT-3.5' },
@@ -32,6 +33,7 @@ const isValidModel = (model: string): model is ModelType => {
 
 const STORAGE_KEY_MODEL = 'zedai-selected-model'
 const STORAGE_KEY_SYSTEM_PROMPT = 'zedai-system-prompt'
+const STORAGE_KEY_THEME = 'zedai-theme'
 
 const getSavedModel = (): ModelType => {
   try {
@@ -70,6 +72,26 @@ const saveSystemPromptToStorage = (prompt: string) => {
     localStorage.setItem(STORAGE_KEY_SYSTEM_PROMPT, prompt)
   } catch (e) {
     console.warn('Failed to save system prompt to localStorage:', e)
+  }
+}
+
+const getSavedTheme = (): Theme => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_THEME)
+    if (saved === 'light' || saved === 'dark') {
+      return saved
+    }
+  } catch (e) {
+    console.warn('Failed to read theme from localStorage:', e)
+  }
+  return 'light'
+}
+
+const saveThemeToStorage = (theme: Theme) => {
+  try {
+    localStorage.setItem(STORAGE_KEY_THEME, theme)
+  } catch (e) {
+    console.warn('Failed to save theme to localStorage:', e)
   }
 }
 
@@ -217,6 +239,7 @@ const App: React.FC = () => {
   const [isSystemPromptExpanded, setIsSystemPromptExpanded] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
+  const [theme, setTheme] = useState<Theme>(getSavedTheme)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -375,6 +398,15 @@ const App: React.FC = () => {
   useEffect(() => {
     saveSystemPromptToStorage(systemPrompt)
   }, [systemPrompt])
+
+  useEffect(() => {
+    saveThemeToStorage(theme)
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light')
+  }
 
   // GraphQL 请求函数（改进版）
   const makeGraphQLRequest = async (query: string, variables: any) => {
@@ -815,6 +847,13 @@ const App: React.FC = () => {
             />
             优先使用 GraphQL
           </label>
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            title={theme === 'light' ? '切换到深色主题' : '切换到浅色主题'}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
         </div>
       </header>
 

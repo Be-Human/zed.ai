@@ -1,18 +1,142 @@
 /* App.css - 主应用样式 */
+:root {
+  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --header-bg: rgba(255, 255, 255, 0.1);
+  --header-border: rgba(255, 255, 255, 0.2);
+  --text-primary: white;
+  --text-secondary: rgba(255, 255, 255, 0.9);
+  --select-bg: rgba(255, 255, 255, 0.15);
+  --select-border: rgba(255, 255, 255, 0.3);
+  --select-hover-bg: rgba(255, 255, 255, 0.2);
+  --select-hover-border: rgba(255, 255, 255, 0.5);
+  --select-focus-border: white;
+  --select-focus-shadow: rgba(255, 255, 255, 0.2);
+  --messages-bg: rgba(255, 255, 255, 0.95);
+  --messages-border: rgba(255, 255, 255, 0.2);
+  --messages-shadow: rgba(0, 0, 0, 0.1);
+  --welcome-text: #666;
+  --welcome-title: #333;
+  --input-area-bg: rgba(255, 255, 255, 0.95);
+  --input-area-border: rgba(255, 255, 255, 0.2);
+  --system-prompt-border: #e9ecef;
+  --system-prompt-text: #667eea;
+  --system-prompt-hover-bg: rgba(102, 126, 234, 0.05);
+  --input-border: #e9ecef;
+  --input-focus-border: #667eea;
+  --assistant-message-bg: #f8f9fa;
+  --assistant-message-border: #e9ecef;
+  --assistant-message-text: #333;
+  --model-badge-bg: rgba(102, 126, 234, 0.1);
+  --model-badge-text: #667eea;
+  --message-time-text: #9ca3af;
+  --markdown-code-bg: rgba(0, 0, 0, 0.05);
+  --markdown-code-text: #e74c3c;
+  --markdown-blockquote-border: #667eea;
+  --markdown-blockquote-text: #666;
+  --markdown-table-border: #e9ecef;
+  --markdown-th-bg: #f1f3f5;
+  --markdown-th-text: #333;
+  --markdown-td-text: #333;
+  --markdown-even-row-bg: #f8f9fa;
+  --markdown-link-text: #667eea;
+  --markdown-hr-border: #e9ecef;
+  --modal-overlay-bg: rgba(0, 0, 0, 0.5);
+  --modal-bg: white;
+  --modal-title-text: #333;
+  --section-label-text: #555;
+  --radio-border: #e9ecef;
+  --radio-hover-border: #667eea;
+  --radio-checked-bg: rgba(102, 126, 234, 0.05);
+  --radio-checked-border: #667eea;
+  --radio-checked-text: #667eea;
+  --radio-label-text: #333;
+  --checkbox-border: #e9ecef;
+  --checkbox-hover-border: #667eea;
+  --checkbox-checked-bg: rgba(102, 126, 234, 0.05);
+  --checkbox-checked-border: #667eea;
+  --checkbox-label-text: #333;
+  --modal-cancel-bg: #f1f3f5;
+  --modal-cancel-text: #666;
+  --modal-cancel-hover-bg: #e9ecef;
+  --typing-dot-bg: #666;
+}
+
+[data-theme="dark"] {
+  --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  --header-bg: rgba(0, 0, 0, 0.3);
+  --header-border: rgba(255, 255, 255, 0.1);
+  --text-primary: #e0e0e0;
+  --text-secondary: rgba(224, 224, 224, 0.9);
+  --select-bg: rgba(255, 255, 255, 0.1);
+  --select-border: rgba(255, 255, 255, 0.2);
+  --select-hover-bg: rgba(255, 255, 255, 0.15);
+  --select-hover-border: rgba(255, 255, 255, 0.3);
+  --select-focus-border: #667eea;
+  --select-focus-shadow: rgba(102, 126, 234, 0.3);
+  --messages-bg: rgba(30, 30, 46, 0.95);
+  --messages-border: rgba(255, 255, 255, 0.1);
+  --messages-shadow: rgba(0, 0, 0, 0.3);
+  --welcome-text: #a0a0a0;
+  --welcome-title: #e0e0e0;
+  --input-area-bg: rgba(30, 30, 46, 0.95);
+  --input-area-border: rgba(255, 255, 255, 0.1);
+  --system-prompt-border: #3a3a5a;
+  --system-prompt-text: #a5b4fc;
+  --system-prompt-hover-bg: rgba(165, 180, 252, 0.1);
+  --input-border: #3a3a5a;
+  --input-focus-border: #667eea;
+  --assistant-message-bg: #2a2a3e;
+  --assistant-message-border: #3a3a5a;
+  --assistant-message-text: #e0e0e0;
+  --model-badge-bg: rgba(102, 126, 234, 0.2);
+  --model-badge-text: #a5b4fc;
+  --message-time-text: #6b7280;
+  --markdown-code-bg: rgba(255, 255, 255, 0.1);
+  --markdown-code-text: #f87171;
+  --markdown-blockquote-border: #667eea;
+  --markdown-blockquote-text: #a0a0a0;
+  --markdown-table-border: #3a3a5a;
+  --markdown-th-bg: #3a3a5a;
+  --markdown-th-text: #e0e0e0;
+  --markdown-td-text: #e0e0e0;
+  --markdown-even-row-bg: #2a2a3e;
+  --markdown-link-text: #a5b4fc;
+  --markdown-hr-border: #3a3a5a;
+  --modal-overlay-bg: rgba(0, 0, 0, 0.7);
+  --modal-bg: #1e1e2e;
+  --modal-title-text: #e0e0e0;
+  --section-label-text: #a0a0a0;
+  --radio-border: #3a3a5a;
+  --radio-hover-border: #667eea;
+  --radio-checked-bg: rgba(102, 126, 234, 0.1);
+  --radio-checked-border: #667eea;
+  --radio-checked-text: #a5b4fc;
+  --radio-label-text: #e0e0e0;
+  --checkbox-border: #3a3a5a;
+  --checkbox-hover-border: #667eea;
+  --checkbox-checked-bg: rgba(102, 126, 234, 0.1);
+  --checkbox-checked-border: #667eea;
+  --checkbox-label-text: #e0e0e0;
+  --modal-cancel-bg: #3a3a5a;
+  --modal-cancel-text: #e0e0e0;
+  --modal-cancel-hover-bg: #4a4a6a;
+  --typing-dot-bg: #a0a0a0;
+}
+
 .app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--bg-gradient);
 }
 
 .header {
   text-align: center;
   padding: 2rem 1rem 1rem;
-  color: white;
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  background: var(--header-bg);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid var(--header-border);
 }
 
 .header h1 {
@@ -26,6 +150,7 @@
   margin: 0;
   opacity: 0.9;
   font-size: 1.1rem;
+  color: var(--text-secondary);
 }
 
 .header-controls {
@@ -44,24 +169,24 @@
 }
 
 .model-label {
-  color: white;
+  color: var(--text-primary);
   font-size: 0.95rem;
   font-weight: 500;
 }
 
 .model-select {
   padding: 0.5rem 1rem;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid var(--select-border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
+  background: var(--select-bg);
+  color: var(--text-primary);
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   backdrop-filter: blur(10px);
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23e0e0e0'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 1rem;
@@ -69,14 +194,14 @@
 }
 
 .model-select:hover {
-  border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--select-hover-border);
+  background: var(--select-hover-bg);
 }
 
 .model-select:focus {
   outline: none;
-  border-color: white;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+  border-color: var(--select-focus-border);
+  box-shadow: 0 0 0 3px var(--select-focus-shadow);
 }
 
 .model-select:disabled {
@@ -94,7 +219,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: white;
+  color: var(--text-primary);
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -104,8 +229,36 @@
 .graphql-toggle input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: white;
+  accent-color: var(--text-primary);
   cursor: pointer;
+}
+
+.theme-toggle {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--select-border);
+  border-radius: 8px;
+  background: var(--select-bg);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle:hover {
+  border-color: var(--select-hover-border);
+  background: var(--select-hover-bg);
+  transform: scale(1.05);
+}
+
+.theme-toggle:focus {
+  outline: none;
+  border-color: var(--select-focus-border);
+  box-shadow: 0 0 0 3px var(--select-focus-shadow);
 }
 
 .chat-container {
@@ -125,11 +278,11 @@
   flex-direction: column;
   gap: 1rem;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--messages-bg);
   border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px var(--messages-shadow);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--messages-border);
   overflow-y: auto;
   max-height: 600px;
 }
@@ -137,12 +290,12 @@
 .welcome {
   text-align: center;
   padding: 3rem 1rem;
-  color: #666;
+  color: var(--welcome-text);
 }
 
 .welcome h2 {
   margin: 0 0 1rem;
-  color: #333;
+  color: var(--welcome-title);
   font-size: 1.8rem;
 }
 
@@ -216,8 +369,8 @@
 .model-badge {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  color: var(--model-badge-text);
+  background: var(--model-badge-bg);
   padding: 0.125rem 0.5rem;
   border-radius: 4px;
   opacity: 0.8;
@@ -230,7 +383,7 @@
 
 .message-time {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--message-time-text);
   padding: 0 0.25rem;
   opacity: 0.8;
   transition: opacity 0.2s ease-in-out;
@@ -247,9 +400,9 @@
 }
 
 .message.assistant .message-content {
-  background: #f8f9fa;
-  color: #333;
-  border: 1px solid #e9ecef;
+  background: var(--assistant-message-bg);
+  color: var(--assistant-message-text);
+  border: 1px solid var(--assistant-message-border);
   border-bottom-left-radius: 4px;
 }
 
@@ -263,7 +416,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #666;
+  background: var(--typing-dot-bg);
   animation: typing 1.4s infinite ease-in-out;
 }
 
@@ -271,17 +424,17 @@
 .typing span:nth-child(2) { animation-delay: -0.16s; }
 
 .input-area {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--input-area-bg);
   border-radius: 20px;
   padding: 1rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px var(--messages-shadow);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--input-area-border);
 }
 
 .system-prompt-section {
   margin-bottom: 1rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--system-prompt-border);
   padding-bottom: 1rem;
 }
 
@@ -296,15 +449,14 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.95rem;
-  color: #667eea;
+  color: var(--system-prompt-text);
   font-weight: 500;
   transition: all 0.2s;
   text-align: left;
 }
 
 .system-prompt-toggle:hover:not(:disabled) {
-  color: #5a67d8;
-  background: rgba(102, 126, 234, 0.05);
+  background: var(--system-prompt-hover-bg);
 }
 
 .system-prompt-toggle:disabled {
@@ -331,7 +483,7 @@
   min-height: 80px;
   max-height: 160px;
   padding: 0.75rem 1rem;
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--input-border);
   border-radius: 12px;
   font-size: 0.95rem;
   font-family: inherit;
@@ -339,10 +491,12 @@
   outline: none;
   transition: border-color 0.2s;
   line-height: 1.5;
+  background: transparent;
+  color: var(--assistant-message-text);
 }
 
 .system-prompt-input:focus {
-  border-color: #667eea;
+  border-color: var(--input-focus-border);
 }
 
 .system-prompt-input:disabled {
@@ -352,7 +506,7 @@
 
 .system-prompt-hint {
   margin-top: 0.5rem;
-  color: #9ca3af;
+  color: var(--message-time-text);
 }
 
 @keyframes slideDown {
@@ -377,17 +531,19 @@
   min-height: 48px;
   max-height: 120px;
   padding: 0.875rem 1rem;
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--input-border);
   border-radius: 12px;
   font-size: 1rem;
   font-family: inherit;
   resize: none;
   outline: none;
   transition: border-color 0.2s;
+  background: transparent;
+  color: var(--assistant-message-text);
 }
 
 .input-field:focus {
-  border-color: #667eea;
+  border-color: var(--input-focus-border);
 }
 
 .input-field:disabled {
@@ -541,12 +697,12 @@
 }
 
 .message-content code {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--markdown-code-bg);
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.9em;
-  color: #e74c3c;
+  color: var(--markdown-code-text);
 }
 
 .message-content .code-block-wrapper {
@@ -620,10 +776,10 @@
 }
 
 .message-content blockquote {
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--markdown-blockquote-border);
   padding-left: 1rem;
   margin: 0.75rem 0;
-  color: #666;
+  color: var(--markdown-blockquote-text);
   font-style: italic;
 }
 
@@ -635,22 +791,27 @@
 
 .message-content th,
 .message-content td {
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--markdown-table-border);
   padding: 0.5rem 0.75rem;
   text-align: left;
 }
 
 .message-content th {
-  background: #f1f3f5;
+  background: var(--markdown-th-bg);
   font-weight: 600;
+  color: var(--markdown-th-text);
+}
+
+.message-content td {
+  color: var(--markdown-td-text);
 }
 
 .message-content tr:nth-child(even) {
-  background: #f8f9fa;
+  background: var(--markdown-even-row-bg);
 }
 
 .message-content a {
-  color: #667eea;
+  color: var(--markdown-link-text);
   text-decoration: none;
 }
 
@@ -660,7 +821,7 @@
 
 .message-content hr {
   border: none;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--markdown-hr-border);
   margin: 1rem 0;
 }
 
@@ -680,7 +841,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--modal-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -689,7 +850,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--modal-bg);
   border-radius: 20px;
   padding: 2rem;
   max-width: 450px;
@@ -701,7 +862,7 @@
 .modal-content h3 {
   margin: 0 0 1.5rem;
   font-size: 1.5rem;
-  color: #333;
+  color: var(--modal-title-text);
   text-align: center;
 }
 
@@ -712,7 +873,7 @@
 .section-label {
   display: block;
   font-weight: 600;
-  color: #555;
+  color: var(--section-label-text);
   margin-bottom: 0.75rem;
   font-size: 1rem;
 }
@@ -729,23 +890,23 @@
   gap: 0.75rem;
   cursor: pointer;
   padding: 0.75rem 1rem;
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--radio-border);
   border-radius: 12px;
   transition: all 0.2s;
 }
 
 .radio-label:hover {
-  border-color: #667eea;
+  border-color: var(--radio-hover-border);
 }
 
 .radio-label input[type="radio"]:checked + span {
-  color: #667eea;
+  color: var(--radio-checked-text);
   font-weight: 600;
 }
 
 .radio-label:has(input[type="radio"]:checked) {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  border-color: var(--radio-checked-border);
+  background: var(--radio-checked-bg);
 }
 
 .radio-label input[type="radio"] {
@@ -756,7 +917,7 @@
 
 .radio-label span {
   font-size: 1rem;
-  color: #333;
+  color: var(--radio-label-text);
 }
 
 .checkbox-group {
@@ -771,18 +932,18 @@
   gap: 0.75rem;
   cursor: pointer;
   padding: 0.75rem 1rem;
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--checkbox-border);
   border-radius: 12px;
   transition: all 0.2s;
 }
 
 .checkbox-label:hover {
-  border-color: #667eea;
+  border-color: var(--checkbox-hover-border);
 }
 
 .checkbox-label:has(input[type="checkbox"]:checked) {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  border-color: var(--checkbox-checked-border);
+  background: var(--checkbox-checked-bg);
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -793,7 +954,7 @@
 
 .checkbox-label span {
   font-size: 1rem;
-  color: #333;
+  color: var(--checkbox-label-text);
 }
 
 .modal-buttons {
@@ -814,12 +975,12 @@
 }
 
 .modal-button.cancel {
-  background: #f1f3f5;
-  color: #666;
+  background: var(--modal-cancel-bg);
+  color: var(--modal-cancel-text);
 }
 
 .modal-button.cancel:hover {
-  background: #e9ecef;
+  background: var(--modal-cancel-hover-bg);
   transform: translateY(-1px);
 }
 
